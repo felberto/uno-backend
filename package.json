@@ -1,6 +1,6 @@
 {
   "name" : "uno-backend", "version" : "1.0.0", "description" : "uno backend", "main" : "index.js", "scripts" : {
-  "start" : "node index.js", "test" : "mocha --exit", "coverage" : "npm run pretest && jest --coverage && cat ./coverage/lcov.info | coveralls"
+  "start" : "node index.js", "test" : "mocha --exit", "coverage" : "npm run test && jest --coverage && cat ./coverage/lcov.info | coveralls"
 }, "keywords" : [ ], "author" : "felbertob", "license" : "ISC", "dependencies" : {
   "cors" : "^2.8.5", "express" : "^4.17.1", "chai" : "^4.1.2", "mocha" : "^5.2.0"
 }, "devDependencies" : {
