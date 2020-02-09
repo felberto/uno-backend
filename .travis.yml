@@ -8,7 +8,7 @@ after_success: npm run coverage
 deploy:
   branches:
     only:
-      - master
+      - release
   provider: heroku
   app: uno-back
   api_key:

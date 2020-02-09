@@ -1,7 +1,7 @@
-const express = require('express');
+var express = require('express');
 
 // create express app
-const app = express();
+var app = express();
 
 // Set CORS on express
 app.use(function (req, res, next) {
