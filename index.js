@@ -13,7 +13,7 @@ app.use(function (req, res, next) {
 
 // define a simple route
 app.get('/api', (req, res) => {
-    res.json({"message": "Welcome to UNO backend application."});
+    res.send("uno backend");
 });
 
 // listen for requests
