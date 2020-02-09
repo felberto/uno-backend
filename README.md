@@ -1,1 +1,2 @@
-# uno-backend
+# UNO Backend
+`nodemon server.js`
