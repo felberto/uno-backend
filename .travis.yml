@@ -6,6 +6,9 @@ cache:
     - "node_modules"
 after_success: npm run coverage
 deploy:
+  branches:
+    only:
+      - master
   provider: heroku
   app: uno-back
   api_key:
