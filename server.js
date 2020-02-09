@@ -11,6 +11,11 @@ app.use(function (req, res, next) {
     next();
 });
 
+// define a simple route
+app.get('/api', (req, res) => {
+    res.json({"message": "Welcome to UNO backend application."});
+});
+
 // listen for requests
 app.listen(8080, () => {
     console.log("Server is listening on port 8080");
