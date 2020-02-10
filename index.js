@@ -1,22 +1,18 @@
-var express = require('express');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-// create express app
-var app = express();
+const app = express();
 
-// Set CORS on express
-app.use(function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    next();
-});
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
+
+const port = process.env.PORT || 8000;
 
 // define a simple route
 app.get('/api', (req, res) => {
     res.send("uno backend");
 });
 
-// listen for requests
-app.listen(8080, () => {
-    console.log("Server is listening on port 8080");
+app.listen(port, () => {
+    console.log(`Server is running on PORT ${port}`);
 });

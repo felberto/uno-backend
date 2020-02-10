@@ -4,7 +4,18 @@ node_js:
 cache:
   directories:
     - "node_modules"
-after_success: npm run coverage
+install:
+  - npm install
+
+env:
+  global:
+    - NODE_ENV=test
+
+script:
+  - npm test
+after_success:
+  - npm run coverage
+
 deploy:
   branches:
     only:

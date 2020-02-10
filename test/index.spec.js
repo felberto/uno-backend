@@ -3,6 +3,6 @@ const server = require('../index');
 
 describe('test', () => {
     it('should return a string', () => {
-        expect('uno backend').to.equal('uno backend');
+        expect("uno backend").to.equal("uno backend");
     });
 });
