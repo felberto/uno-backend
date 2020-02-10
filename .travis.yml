@@ -17,9 +17,10 @@ after_success:
   - npm run coverage
 
 deploy:
-  branches:
-    only:
-      - release
+  on:
+    branches:
+      only:
+        - release
   provider: heroku
   app: uno-back
   api_key:
