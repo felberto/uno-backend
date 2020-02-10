@@ -2,8 +2,8 @@
   "name" : "uno-backend", "version" : "1.0.0", "description" : "uno backend", "main" : "index.js", "scripts" : {
   "dev" : "nodemon index.js", "start" : "node index.js", "test" : "export NODE_ENV=test && nyc  mocha ./test/index.spec.js --timeout 20000 --exit", "generate-lcov" : "nyc report --reporter=text-lcov > lcov.info", "coveralls-coverage" : "coveralls < lcov.info", "codeclimate-coverage" : "codeclimate-test-reporter < lcov.info", "coverage" : "nyc npm test && npm run generate-lcov && npm run coveralls-coverage && npm run codeclimate-coverage"
 }, "keywords" : [ ], "author" : "felberto", "license" : "ISC", "dependencies" : {
-  "cors" : "^2.8.5", "express" : "^4.17.1", "chai" : "^4.1.2", "chai-http" : "^4.3.0", "mocha" : "^5.2.0", "body-parser" : "^1.19.0"
+  "cors" : "^2.8.5", "express" : "^4.17.1", "chai" : "^4.1.2", "chai-http" : "^4.3.0", "body-parser" : "^1.19.0"
 }, "devDependencies" : {
-  "nodemon" : "^1.19.4"
+  "nodemon" : "^1.19.4", "mocha" : "^7.0.1", "nyc" : "^13.3.0"
 }
 }
