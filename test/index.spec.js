@@ -1,8 +1,7 @@
 const expect = require('chai').expect;
 const server = require('../index');
 
-describe('test', () => {
-    it('should return a string', () => {
-        expect("uno backend").to.equal("uno backend");
-    });
+
+test('should return a string', async () => {
+    expect("uno backend").to.equal("uno backend");
 });
