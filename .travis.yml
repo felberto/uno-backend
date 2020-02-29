@@ -1,3 +1,12 @@
+dist: trusty
+sudo: required
+
+addons:
+  sonarcloud:
+    organization: "felberto-github"
+    token:
+      secure: ${SONAR_TOKEN}
+
 language: node_js
 node_js:
   - "stable"
@@ -11,15 +20,23 @@ env:
   global:
     - NODE_ENV=test
 
-script:
-  - npm test
-after_success:
-  - npm run coverage
-
-deploy:
-  provider: heroku
-  app: uno-back
-  api_key:
-    secure: ${HEROKU_API_KEY}
-  on:
-    branch: release
+jobs:
+  include:
+    - stage: test
+      script:
+        - npm test -- --coverage --watchAll=false
+    - stage: sonar
+      script:
+        - npm test -- --coverage --watchAll=false
+        - sonar-scanner
+    - stage: deploy
+      if: branch = release
+      script:
+        - npm run build
+      deploy:
+        provider: heroku
+        app: uno-back
+        api_key:
+          secure: ${HEROKU_API_KEY}
+        on:
+          branch: release

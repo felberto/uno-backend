@@ -17,25 +17,9 @@ app.use(function (req, res, next) {
     next();
 });
 
-io.origins('*:*'); // for latest version
-
-const port = process.env.PORT || 8000;
-
-io.on('connection', function (socket) {
-    console.log('a user connected');
-
-    socket.on("disconnect", () => {
-        console.log("user disconnected");
-    });
-});
-
-io.listen(8001);
-
 // define a simple route
 app.get('/api', (req, res) => {
-    res.send("uno backend");
+    res.status(200).send("uno backend");
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on PORT ${port}`);
-});
+module.exports = app;
