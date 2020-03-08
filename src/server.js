@@ -8,17 +8,29 @@ io.origins('*:*'); // for latest version
 io.on('connection', function (socket) {
     console.log('a user connected');
 
-    socket.on('createLobby', (lobbyName, userName) => {
+    socket.on('createRoom', (roomName, userName) => {
         socket.username = userName;
-        socket.join(lobbyName);
-        console.log('created lobby ' + lobbyName);
-        console.log(io.sockets.adapter.rooms);
+        socket.join(roomName);
+        console.log('created room ' + roomName);
     });
 
-    socket.on('joinLobby', (lobbyName, userName) => {
+    socket.on('joinRoom', (roomName, userName) => {
         socket.username = userName;
-        socket.join(lobbyName);
-        console.log('joined lobby ' + lobbyName);
+        socket.join(roomName);
+        console.log('joined room ' + roomName);
+    });
+
+    socket.on('getAllRooms', () => {
+        let availableRooms = [];
+        let rooms = io.sockets.adapter.rooms;
+        if (rooms) {
+            for (let room in rooms) {
+                if (!rooms[room].hasOwnProperty(room)) {
+                    availableRooms.push({name: room});
+                }
+            }
+        }
+        socket.emit('responseAllRooms', availableRooms);
     });
 
     socket.on("disconnect", () => {
