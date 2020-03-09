@@ -20,6 +20,12 @@ io.on('connection', function (socket) {
         console.log('joined room ' + roomName);
     });
 
+    socket.on('leaveRoom', () => {
+        const room = Object.keys(socket.rooms);
+        socket.leave(room);
+        console.log('left room ' + room);
+    });
+
     socket.on('getAllRooms', () => {
         let availableRooms = [];
         let rooms = io.sockets.adapter.rooms;
