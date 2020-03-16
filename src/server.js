@@ -13,30 +13,36 @@ io.on('connection', function (socket) {
 
     socket.on('createRoom', (roomName, userName) => {
         socket.username = userName;
-        this.rooms.push({name: roomName, users: [socket.id], variables: {}});
+        this.rooms.push({name: roomName, playing: false, users: [{user: socket.id, cards: []}], deck: []});
         socket.join(roomName);
         console.log('created room ' + roomName);
-        console.log(this.rooms)
     });
 
     socket.on('joinRoom', (roomName, userName) => {
-        console.log(socket.id);
         socket.username = userName;
         this.rooms.forEach(room => {
             if (room.name === roomName) {
-                room.users.push(socket.id);
+                room.users.push({user: socket.id, cards: []});
             }
         });
         socket.join(roomName);
         console.log('joined room ' + roomName);
-        console.log(this.rooms);
     });
 
     socket.on('getAllRooms', () => {
-        socket.emit('responseAllRooms', this.rooms);
+        let availableRooms = [];
+
+        for (let index = 0; index < this.rooms.length; ++index) {
+            if (!this.rooms[index].playing) {
+                availableRooms.push(this.rooms[index]);
+            }
+        }
+        socket.emit('responseAllRooms', availableRooms);
     });
 
     socket.on('startGame', () => {
+
+
         let rawData = fs.readFileSync('cards.json');
         let cards = JSON.parse(rawData);
         console.log(cards);
