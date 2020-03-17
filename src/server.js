@@ -35,9 +35,15 @@ io.on('connection', function (socket) {
     });
 
     socket.on('leaveRoom', () => {
-        const room = Object.keys(socket.rooms);
-        socket.leave(room);
-        console.log('left room ' + room);
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    this.rooms[i].users[y].shift();
+                    socket.leave(this.rooms[i].name);
+                    console.log('left room ' + this.rooms[i].name);
+                }
+            }
+        }
     });
 
     socket.on('getRoomData', () => {
