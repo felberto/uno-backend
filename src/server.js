@@ -34,6 +34,12 @@ io.on('connection', function (socket) {
         console.log('joined room ' + roomName);
     });
 
+    socket.on('leaveRoom', () => {
+        const room = Object.keys(socket.rooms);
+        socket.leave(room);
+        console.log('left room ' + room);
+    });
+
     socket.on('getRoomData', () => {
         for (let i = 0; i < this.rooms.length; ++i) {
             for (let y = 0; y < this.rooms[i].users.length; ++y) {
