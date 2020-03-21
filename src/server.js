@@ -25,21 +25,23 @@ io.on('connection', function (socket) {
 
     socket.on('joinRoom', (roomName, userName) => {
         socket.username = userName;
-        this.rooms.forEach(room => {
-            if (room.name === roomName) {
-                room.users.push({user: socket.id, username: userName, cards: []});
+        for (let i = 0; i < this.rooms.length; ++i) {
+            if (this.rooms[i].name === roomName) {
+                this.rooms[i].users.push({user: socket.id, username: userName, cards: []});
+                socket.join(roomName);
+                socket.broadcast.to(roomName).emit('roomData', this.rooms[i]);
+                console.log('joined room ' + roomName);
             }
-        });
-        socket.join(roomName);
-        console.log('joined room ' + roomName);
+        }
     });
 
     socket.on('leaveRoom', () => {
         for (let i = 0; i < this.rooms.length; ++i) {
             for (let y = 0; y < this.rooms[i].users.length; ++y) {
                 if (this.rooms[i].users[y].user === socket.id) {
-                    this.rooms[i].users[y].shift();
+                    this.rooms[i].users.splice(this.rooms[i].users.indexOf(this.rooms[i].users[y]), 1);
                     socket.leave(this.rooms[i].name);
+                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
                     console.log('left room ' + this.rooms[i].name);
                 }
             }
@@ -58,16 +60,18 @@ io.on('connection', function (socket) {
 
     socket.on('getAllRooms', () => {
         let availableRooms = [];
+        console.log(this.rooms);
 
         for (let i = 0; i < this.rooms.length; ++i) {
             if (!this.rooms[i].playing) {
-                availableRooms.push(this.rooms[i]);
+                availableRooms.push(this.rooms[i].name);
             }
         }
         socket.emit('responseAllRooms', availableRooms);
     });
 
-    socket.on('startGame', (room) => {
+    socket.on('clickStart', (room) => {
+        socket.broadcast.to(room).emit('redirectStart');
         fs.readFile('./resources/cards.json', 'utf8', (err, jsonString) => {
             if (err) {
                 console.log("File read failed:", err);
@@ -85,7 +89,7 @@ io.on('connection', function (socket) {
                         }
                     }
                     this.rooms[i].deck.push(shuffled);
-                    io.to(room).emit('roomData', this.rooms[i]);
+                    //socket.broadcast.to(room).emit('roomData', this.rooms[i]);
                 }
             }
         });
