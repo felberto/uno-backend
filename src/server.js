@@ -19,8 +19,10 @@ io.on('connection', function (socket) {
             users: [{user: socket.id, username: userName, cards: []}],
             deck: []
         });
+        socket.leaveAll();
         socket.join(roomName);
         console.log('created room ' + roomName);
+        console.log(io.sockets.adapter.sids[socket.id]);
     });
 
     socket.on('joinRoom', (roomName, userName) => {
@@ -28,6 +30,7 @@ io.on('connection', function (socket) {
         for (let i = 0; i < this.rooms.length; ++i) {
             if (this.rooms[i].name === roomName) {
                 this.rooms[i].users.push({user: socket.id, username: userName, cards: []});
+                socket.leaveAll();
                 socket.join(roomName);
                 socket.broadcast.to(roomName).emit('roomData', this.rooms[i]);
                 console.log('joined room ' + roomName);
@@ -89,7 +92,6 @@ io.on('connection', function (socket) {
                         }
                     }
                     this.rooms[i].deck.push(shuffled);
-                    //socket.broadcast.to(room).emit('roomData', this.rooms[i]);
                 }
             }
         });
