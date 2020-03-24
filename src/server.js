@@ -17,7 +17,8 @@ io.on('connection', function (socket) {
             name: roomName,
             playing: false,
             users: [{user: socket.id, username: userName, cards: []}],
-            deck: []
+            deck: [],
+            stack: {}
         });
         socket.leaveAll();
         socket.join(roomName);
@@ -91,6 +92,7 @@ io.on('connection', function (socket) {
                             --count;
                         }
                     }
+                    this.rooms[i].stack = shuffled.shift();
                     this.rooms[i].deck.push(shuffled);
                 }
             }
