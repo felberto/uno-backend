@@ -67,7 +67,7 @@ io.on('connection', function (socket) {
         console.log(this.rooms);
 
         for (let i = 0; i < this.rooms.length; ++i) {
-            if (!this.rooms[i].playing) {
+            if (!this.rooms[i].playing && this.rooms[i].users.length !== 4) {
                 availableRooms.push(this.rooms[i].name);
             }
         }
