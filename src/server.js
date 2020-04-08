@@ -16,7 +16,7 @@ io.on('connection', function (socket) {
         this.rooms.push({
             name: roomName,
             playing: false,
-            users: [{user: socket.id, username: userName, cards: []}],
+            users: [{id: 0, user: socket.id, username: userName, cards: []}],
             deck: [],
             stack: {}
         });
@@ -30,7 +30,7 @@ io.on('connection', function (socket) {
         socket.username = userName;
         for (let i = 0; i < this.rooms.length; ++i) {
             if (this.rooms[i].name === roomName) {
-                this.rooms[i].users.push({user: socket.id, username: userName, cards: []});
+                this.rooms[i].users.push({id: 0, user: socket.id, username: userName, cards: []});
                 socket.leaveAll();
                 socket.join(roomName);
                 socket.broadcast.to(roomName).emit('roomData', this.rooms[i]);
@@ -84,8 +84,10 @@ io.on('connection', function (socket) {
             let cards = JSON.parse(jsonString);
             for (let i = 0; i < this.rooms.length; ++i) {
                 if (this.rooms[i].name === room) {
+                    this.rooms[i].users = shuffle(this.rooms[i].users);
                     let shuffled = shuffle(cards.cards);
                     for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                        this.rooms[i].users[y].id = this.rooms[i].users.indexOf(this.rooms[i].users[y]);
                         let count = 7;
                         while (count !== 0) {
                             this.rooms[i].users[y].cards.push(shuffled.shift());
