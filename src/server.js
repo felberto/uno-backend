@@ -19,15 +19,28 @@ io.on('connection', function (socket) {
             users: [{id: 0, user: socket.id, username: userName, cards: []}],
             deck: [],
             stack: {},
-            userTurn: null
+            userTurn: null,
+            direction: '+'
         });
         socket.leaveAll();
         socket.join(roomName);
         console.log('created room ' + roomName);
         console.log(io.sockets.adapter.sids[socket.id]);
+
+        let availableRooms = [];
+        console.log(this.rooms);
+
+        for (let i = 0; i < this.rooms.length; ++i) {
+            if (!this.rooms[i].playing && this.rooms[i].users.length !== 4) {
+                availableRooms.push(this.rooms[i].name);
+            }
+        }
+        socket.broadcast.emit('responseAllRooms', availableRooms);
     });
 
     socket.on('joinRoom', (roomName, userName) => {
+        console.log('join');
+        console.log(roomName);
         socket.username = userName;
         for (let i = 0; i < this.rooms.length; ++i) {
             if (this.rooms[i].name === roomName) {
@@ -103,12 +116,51 @@ io.on('connection', function (socket) {
         });
     });
 
+    socket.on("playCard", (card) => {
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    if (valid(card, this.rooms[i].stack)) {
+                        this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
+                        this.rooms[i].stack = card;
+                        if (this.rooms[i].direction === '+') {
+                            this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
+                            if (this.rooms[i].userTurn === this.rooms[i].users.length) {
+                                this.rooms[i].userTurn = 0;
+                            }
+                        } else {
+                            this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
+                            if (this.rooms[i].userTurn === -1) {
+                                this.rooms[i].userTurn = this.rooms[i].users.length - 1;
+                            }
+                        }
+                        socket.emit('roomData', this.rooms[i]);
+                        socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                    }
+                }
+            }
+        }
+    });
+
     socket.on("disconnect", () => {
         console.log("user disconnected");
     });
 });
 
 io.listen(8001);
+
+function valid(card, stackCard) {
+    if (stackCard.color === card.color || stackCard.number === card.number) {
+        return true;
+    } else if (card.color === 'black') {
+        return true;
+    } else if (stackCard.color === 'black') {
+        //ToDo: color choice if black card
+        return true
+    } else {
+        return false;
+    }
+}
 
 function shuffle(array) {
     let ctr = array.length, temp, index;
