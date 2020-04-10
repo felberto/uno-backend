@@ -109,7 +109,7 @@ io.on('connection', function (socket) {
                         }
                     }
                     this.rooms[i].stack = shuffled.shift();
-                    this.rooms[i].deck.push(shuffled);
+                    this.rooms[i].deck = shuffled;
                     this.rooms[i].userTurn = Math.floor(Math.random() * this.rooms[i].users.length);
                 }
             }
@@ -117,12 +117,76 @@ io.on('connection', function (socket) {
     });
 
     socket.on("playCard", (card) => {
+        let counter;
         for (let i = 0; i < this.rooms.length; ++i) {
             for (let y = 0; y < this.rooms[i].users.length; ++y) {
                 if (this.rooms[i].users[y].user === socket.id) {
                     if (valid(card, this.rooms[i].stack)) {
                         this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
                         this.rooms[i].stack = card;
+                        counter = 1;
+                        if (card.action === 'return') {
+                            if (this.rooms[i].direction === '+') {
+                                this.rooms[i].direction = '-';
+                            } else {
+                                this.rooms[i].direction = '+';
+                            }
+                        } else if (card.action === 'suspend') {
+                            counter = 2;
+                        }
+
+                        while (counter !== 0) {
+                            if (this.rooms[i].direction === '+') {
+                                this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
+                                if (this.rooms[i].userTurn === this.rooms[i].users.length) {
+                                    this.rooms[i].userTurn = 0;
+                                }
+                            } else {
+                                this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
+                                if (this.rooms[i].userTurn === -1) {
+                                    this.rooms[i].userTurn = this.rooms[i].users.length - 1;
+                                }
+                            }
+                            counter = counter - 1;
+                        }
+
+                        if (card.action === 'draw2') {
+                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
+                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
+                                    let count = 2;
+                                    while (count !== 0) {
+                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        --count;
+                                    }
+                                }
+                            }
+                        } else if (card.action === 'draw4') {
+                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
+                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
+                                    let count = 4;
+                                    while (count !== 0) {
+                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        --count;
+                                    }
+                                }
+                            }
+                        }
+
+                        socket.emit('roomData', this.rooms[i]);
+                        socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                    }
+                }
+            }
+        }
+    });
+
+    socket.on("getCard", () => {
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    let card = this.rooms[i].deck.shift();
+                    this.rooms[i].users[y].cards.push(card);
+                    if (!valid(card, this.rooms[i].stack)) {
                         if (this.rooms[i].direction === '+') {
                             this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
                             if (this.rooms[i].userTurn === this.rooms[i].users.length) {
@@ -134,9 +198,9 @@ io.on('connection', function (socket) {
                                 this.rooms[i].userTurn = this.rooms[i].users.length - 1;
                             }
                         }
-                        socket.emit('roomData', this.rooms[i]);
-                        socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
                     }
+                    socket.emit('roomData', this.rooms[i]);
+                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
                 }
             }
         }
@@ -150,7 +214,7 @@ io.on('connection', function (socket) {
 io.listen(8001);
 
 function valid(card, stackCard) {
-    if (stackCard.color === card.color || stackCard.number === card.number) {
+    if (stackCard.color === card.color || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
         return true;
     } else if (card.color === 'black') {
         return true;
