@@ -28,14 +28,3 @@ jobs:
       script:
         - npm test -- --coverage --watchAll=false
         - sonar-scanner
-    - stage: deploy
-      if: branch = release
-      script:
-        - npm run build
-      deploy:
-        provider: heroku
-        app: uno-back
-        api_key:
-          secure: ${HEROKU_API_KEY}
-        on:
-          branch: release

@@ -16,21 +16,35 @@ io.on('connection', function (socket) {
         this.rooms.push({
             name: roomName,
             playing: false,
-            users: [{user: socket.id, username: userName, cards: []}],
+            users: [{id: 0, user: socket.id, username: userName, cards: []}],
             deck: [],
-            stack: {}
+            stack: {},
+            userTurn: null,
+            direction: '+'
         });
         socket.leaveAll();
         socket.join(roomName);
         console.log('created room ' + roomName);
         console.log(io.sockets.adapter.sids[socket.id]);
+
+        let availableRooms = [];
+        console.log(this.rooms);
+
+        for (let i = 0; i < this.rooms.length; ++i) {
+            if (!this.rooms[i].playing && this.rooms[i].users.length !== 4) {
+                availableRooms.push(this.rooms[i].name);
+            }
+        }
+        socket.broadcast.emit('responseAllRooms', availableRooms);
     });
 
     socket.on('joinRoom', (roomName, userName) => {
+        console.log('join');
+        console.log(roomName);
         socket.username = userName;
         for (let i = 0; i < this.rooms.length; ++i) {
             if (this.rooms[i].name === roomName) {
-                this.rooms[i].users.push({user: socket.id, username: userName, cards: []});
+                this.rooms[i].users.push({id: 0, user: socket.id, username: userName, cards: []});
                 socket.leaveAll();
                 socket.join(roomName);
                 socket.broadcast.to(roomName).emit('roomData', this.rooms[i]);
@@ -84,8 +98,10 @@ io.on('connection', function (socket) {
             let cards = JSON.parse(jsonString);
             for (let i = 0; i < this.rooms.length; ++i) {
                 if (this.rooms[i].name === room) {
+                    this.rooms[i].users = shuffle(this.rooms[i].users);
                     let shuffled = shuffle(cards.cards);
                     for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                        this.rooms[i].users[y].id = this.rooms[i].users.indexOf(this.rooms[i].users[y]);
                         let count = 7;
                         while (count !== 0) {
                             this.rooms[i].users[y].cards.push(shuffled.shift());
@@ -93,10 +109,101 @@ io.on('connection', function (socket) {
                         }
                     }
                     this.rooms[i].stack = shuffled.shift();
-                    this.rooms[i].deck.push(shuffled);
+                    this.rooms[i].deck = shuffled;
+                    this.rooms[i].userTurn = Math.floor(Math.random() * this.rooms[i].users.length);
                 }
             }
         });
+    });
+
+    socket.on("playCard", (card) => {
+        let counter;
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    if (valid(card, this.rooms[i].stack)) {
+                        this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
+                        this.rooms[i].stack = card;
+                        counter = 1;
+                        if (card.action === 'return') {
+                            if (this.rooms[i].direction === '+') {
+                                this.rooms[i].direction = '-';
+                            } else {
+                                this.rooms[i].direction = '+';
+                            }
+                        } else if (card.action === 'suspend') {
+                            counter = 2;
+                        }
+
+                        while (counter !== 0) {
+                            if (this.rooms[i].direction === '+') {
+                                this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
+                                if (this.rooms[i].userTurn === this.rooms[i].users.length) {
+                                    this.rooms[i].userTurn = 0;
+                                }
+                            } else {
+                                this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
+                                if (this.rooms[i].userTurn === -1) {
+                                    this.rooms[i].userTurn = this.rooms[i].users.length - 1;
+                                }
+                            }
+                            counter = counter - 1;
+                        }
+
+                        if (card.action === 'draw2') {
+                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
+                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
+                                    let count = 2;
+                                    while (count !== 0) {
+                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        --count;
+                                    }
+                                }
+                            }
+                        } else if (card.action === 'draw4') {
+                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
+                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
+                                    let count = 4;
+                                    while (count !== 0) {
+                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        --count;
+                                    }
+                                }
+                            }
+                        }
+
+                        socket.emit('roomData', this.rooms[i]);
+                        socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                    }
+                }
+            }
+        }
+    });
+
+    socket.on("getCard", () => {
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    let card = this.rooms[i].deck.shift();
+                    this.rooms[i].users[y].cards.push(card);
+                    if (!valid(card, this.rooms[i].stack)) {
+                        if (this.rooms[i].direction === '+') {
+                            this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
+                            if (this.rooms[i].userTurn === this.rooms[i].users.length) {
+                                this.rooms[i].userTurn = 0;
+                            }
+                        } else {
+                            this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
+                            if (this.rooms[i].userTurn === -1) {
+                                this.rooms[i].userTurn = this.rooms[i].users.length - 1;
+                            }
+                        }
+                    }
+                    socket.emit('roomData', this.rooms[i]);
+                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                }
+            }
+        }
     });
 
     socket.on("disconnect", () => {
@@ -105,6 +212,19 @@ io.on('connection', function (socket) {
 });
 
 io.listen(8001);
+
+function valid(card, stackCard) {
+    if (stackCard.color === card.color || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
+        return true;
+    } else if (card.color === 'black') {
+        return true;
+    } else if (stackCard.color === 'black') {
+        //ToDo: color choice if black card
+        return true
+    } else {
+        return false;
+    }
+}
 
 function shuffle(array) {
     let ctr = array.length, temp, index;
