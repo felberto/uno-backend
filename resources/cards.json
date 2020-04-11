@@ -1,541 +1,649 @@
 {
   "cards": [
     {
+      "id": 1,
       "color": "red",
       "number": 0,
       "action": null
     },
     {
+      "id": 2,
       "color": "red",
       "number": 1,
       "action": null
     },
     {
+      "id": 3,
       "color": "red",
       "number": 2,
       "action": null
     },
     {
+      "id": 4,
       "color": "red",
       "number": 3,
       "action": null
     },
     {
+      "id": 5,
       "color": "red",
       "number": 4,
       "action": null
     },
     {
+      "id": 6,
       "color": "red",
       "number": 5,
       "action": null
     },
     {
+      "id": 7,
       "color": "red",
       "number": 6,
       "action": null
     },
     {
+      "id": 8,
       "color": "red",
       "number": 7,
       "action": null
     },
     {
+      "id": 9,
       "color": "red",
       "number": 8,
       "action": null
     },
     {
+      "id": 10,
       "color": "red",
       "number": 9,
       "action": null
     },
     {
+      "id": 11,
       "color": "red",
       "number": 1,
       "action": null
     },
     {
+      "id": 12,
       "color": "red",
       "number": 2,
       "action": null
     },
     {
+      "id": 13,
       "color": "red",
       "number": 3,
       "action": null
     },
     {
+      "id": 14,
       "color": "red",
       "number": 4,
       "action": null
     },
     {
+      "id": 15,
       "color": "red",
       "number": 5,
       "action": null
     },
     {
+      "id": 16,
       "color": "red",
       "number": 6,
       "action": null
     },
     {
+      "id": 17,
       "color": "red",
       "number": 7,
       "action": null
     },
     {
+      "id": 18,
       "color": "red",
       "number": 8,
       "action": null
     },
     {
+      "id": 19,
       "color": "red",
       "number": 9,
       "action": null
     },
     {
+      "id": 20,
       "color": "red",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 21,
       "color": "red",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 22,
       "color": "red",
       "number": null,
       "action": "return"
     },
     {
+      "id": 23,
       "color": "red",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 24,
       "color": "red",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 25,
       "color": "red",
       "number": null,
       "action": "return"
     },
     {
+      "id": 26,
       "color": "blue",
       "number": 0,
       "action": null
     },
     {
+      "id": 27,
       "color": "blue",
       "number": 1,
       "action": null
     },
     {
+      "id": 28,
       "color": "blue",
       "number": 2,
       "action": null
     },
     {
+      "id": 29,
       "color": "blue",
       "number": 3,
       "action": null
     },
     {
+      "id": 30,
       "color": "blue",
       "number": 4,
       "action": null
     },
     {
+      "id": 31,
       "color": "blue",
       "number": 5,
       "action": null
     },
     {
+      "id": 32,
       "color": "blue",
       "number": 6,
       "action": null
     },
     {
+      "id": 33,
       "color": "blue",
       "number": 7,
       "action": null
     },
     {
+      "id": 34,
       "color": "blue",
       "number": 8,
       "action": null
     },
     {
+      "id": 35,
       "color": "blue",
       "number": 9,
       "action": null
     },
     {
+      "id": 36,
       "color": "blue",
       "number": 1,
       "action": null
     },
     {
+      "id": 37,
       "color": "blue",
       "number": 2,
       "action": null
     },
     {
+      "id": 38,
       "color": "blue",
       "number": 3,
       "action": null
     },
     {
+      "id": 39,
       "color": "blue",
       "number": 4,
       "action": null
     },
     {
+      "id": 40,
       "color": "blue",
       "number": 5,
       "action": null
     },
     {
+      "id": 41,
       "color": "blue",
       "number": 6,
       "action": null
     },
     {
+      "id": 42,
       "color": "blue",
       "number": 7,
       "action": null
     },
     {
+      "id": 43,
       "color": "blue",
       "number": 8,
       "action": null
     },
     {
+      "id": 44,
       "color": "blue",
       "number": 9,
       "action": null
     },
     {
+      "id": 45,
       "color": "blue",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 46,
       "color": "blue",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 47,
       "color": "blue",
       "number": null,
       "action": "return"
     },
     {
+      "id": 48,
       "color": "blue",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 49,
       "color": "blue",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 50,
       "color": "blue",
       "number": null,
       "action": "return"
     },
     {
+      "id": 51,
       "color": "yellow",
       "number": 0,
       "action": null
     },
     {
+      "id": 52,
       "color": "yellow",
       "number": 1,
       "action": null
     },
     {
+      "id": 53,
       "color": "yellow",
       "number": 2,
       "action": null
     },
     {
+      "id": 54,
       "color": "yellow",
       "number": 3,
       "action": null
     },
     {
+      "id": 55,
       "color": "yellow",
       "number": 4,
       "action": null
     },
     {
+      "id": 56,
       "color": "yellow",
       "number": 5,
       "action": null
     },
     {
+      "id": 57,
       "color": "yellow",
       "number": 6,
       "action": null
     },
     {
+      "id": 58,
       "color": "yellow",
       "number": 7,
       "action": null
     },
     {
+      "id": 59,
       "color": "yellow",
       "number": 8,
       "action": null
     },
     {
+      "id": 60,
       "color": "yellow",
       "number": 9,
       "action": null
     },
     {
+      "id": 61,
       "color": "yellow",
       "number": 1,
       "action": null
     },
     {
+      "id": 62,
       "color": "yellow",
       "number": 2,
       "action": null
     },
     {
+      "id": 63,
       "color": "yellow",
       "number": 3,
       "action": null
     },
     {
+      "id": 64,
       "color": "yellow",
       "number": 4,
       "action": null
     },
     {
+      "id": 65,
       "color": "yellow",
       "number": 5,
       "action": null
     },
     {
+      "id": 66,
       "color": "yellow",
       "number": 6,
       "action": null
     },
     {
+      "id": 67,
       "color": "yellow",
       "number": 7,
       "action": null
     },
     {
+      "id": 68,
       "color": "yellow",
       "number": 8,
       "action": null
     },
     {
+      "id": 69,
       "color": "yellow",
       "number": 9,
       "action": null
     },
     {
+      "id": 70,
       "color": "yellow",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 71,
       "color": "yellow",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 72,
       "color": "yellow",
       "number": null,
       "action": "return"
     },
     {
+      "id": 73,
       "color": "yellow",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 74,
       "color": "yellow",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 75,
       "color": "yellow",
       "number": null,
       "action": "return"
     },
     {
+      "id": 76,
       "color": "green",
       "number": 0,
       "action": null
     },
     {
+      "id": 77,
       "color": "green",
       "number": 1,
       "action": null
     },
     {
+      "id": 78,
       "color": "green",
       "number": 2,
       "action": null
     },
     {
+      "id": 79,
       "color": "green",
       "number": 3,
       "action": null
     },
     {
+      "id": 80,
       "color": "green",
       "number": 4,
       "action": null
     },
     {
+      "id": 81,
       "color": "green",
       "number": 5,
       "action": null
     },
     {
+      "id": 82,
       "color": "green",
       "number": 6,
       "action": null
     },
     {
+      "id": 83,
       "color": "green",
       "number": 7,
       "action": null
     },
     {
+      "id": 84,
       "color": "green",
       "number": 8,
       "action": null
     },
     {
+      "id": 85,
       "color": "green",
       "number": 9,
       "action": null
     },
     {
+      "id": 86,
       "color": "green",
       "number": 1,
       "action": null
     },
     {
+      "id": 87,
       "color": "green",
       "number": 2,
       "action": null
     },
     {
+      "id": 88,
       "color": "green",
       "number": 3,
       "action": null
     },
     {
+      "id": 89,
       "color": "green",
       "number": 4,
       "action": null
     },
     {
+      "id": 90,
       "color": "green",
       "number": 5,
       "action": null
     },
     {
+      "id": 91,
       "color": "green",
       "number": 6,
       "action": null
     },
     {
+      "id": 92,
       "color": "green",
       "number": 7,
       "action": null
     },
     {
+      "id": 93,
       "color": "green",
       "number": 8,
       "action": null
     },
     {
+      "id": 94,
       "color": "green",
       "number": 9,
       "action": null
     },
     {
+      "id": 95,
       "color": "green",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 96,
       "color": "green",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 97,
       "color": "green",
       "number": null,
       "action": "return"
     },
     {
+      "id": 98,
       "color": "green",
       "number": null,
       "action": "draw2"
     },
     {
+      "id": 99,
       "color": "green",
       "number": null,
       "action": "suspend"
     },
     {
+      "id": 100,
       "color": "green",
       "number": null,
       "action": "return"
     },
     {
+      "id": 101,
       "color": "black",
       "number": null,
       "action": "draw4"
     },
     {
+      "id": 102,
       "color": "black",
       "number": null,
       "action": "draw4"
     },
     {
+      "id": 103,
       "color": "black",
       "number": null,
       "action": "draw4"
     },
     {
+      "id": 104,
       "color": "black",
       "number": null,
       "action": "draw4"
     },
     {
+      "id": 105,
       "color": "black",
       "number": null,
       "action": "changeColor"
     },
     {
+      "id": 106,
       "color": "black",
       "number": null,
       "action": "changeColor"
     },
     {
+      "id": 107,
       "color": "black",
       "number": null,
       "action": "changeColor"
     },
     {
+      "id": 108,
       "color": "black",
       "number": null,
       "action": "changeColor"
