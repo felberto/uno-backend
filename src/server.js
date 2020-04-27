@@ -116,11 +116,12 @@ io.on('connection', function (socket) {
         });
     });
 
-    socket.on("playCard", (card) => {
+    socket.on("playCard", (card, color) => {
         let counter;
         for (let i = 0; i < this.rooms.length; ++i) {
             for (let y = 0; y < this.rooms[i].users.length; ++y) {
                 if (this.rooms[i].users[y].user === socket.id) {
+                    card.colorChoice = color;
                     if (valid(card, this.rooms[i].stack)) {
                         this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
                         this.rooms[i].stack = card;
@@ -214,12 +215,11 @@ io.on('connection', function (socket) {
 io.listen(8001);
 
 function valid(card, stackCard) {
-    if (stackCard.color === card.color || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
+    if ((stackCard.color === card.color && stackCard.color !== 'black') || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
         return true;
-    } else if (card.color === 'black') {
+    } else if (card.color === 'black' && stackCard.color !== 'black') {
         return true;
-    } else if (stackCard.color === 'black') {
-        //ToDo: color choice if black card
+    } else if (stackCard.color === 'black' && stackCard.colorChoice === card.color) {
         return true
     } else {
         return false;
