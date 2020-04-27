@@ -16,7 +16,7 @@ io.on('connection', function (socket) {
         this.rooms.push({
             name: roomName,
             playing: false,
-            users: [{id: 0, user: socket.id, username: userName, cards: []}],
+            users: [{id: 0, user: socket.id, username: userName, cards: [], uno: false}],
             deck: [],
             stack: {},
             userTurn: null,
@@ -121,6 +121,16 @@ io.on('connection', function (socket) {
         for (let i = 0; i < this.rooms.length; ++i) {
             for (let y = 0; y < this.rooms[i].users.length; ++y) {
                 if (this.rooms[i].users[y].user === socket.id) {
+                    console.log(this.rooms[i].users[y].uno);
+                    if (this.rooms[i].users[y].cards.length === 2 && !this.rooms[i].users[y].uno) {
+                        for (let j = 0; j < 2; ++j) {
+                            let card = this.rooms[i].deck.shift();
+                            this.rooms[i].users[y].cards.push(card);
+                        }
+                    } else if (this.rooms[i].users[y].cards.length > 2 && this.rooms[i].users[y].uno) {
+                        let card = this.rooms[i].deck.shift();
+                        this.rooms[i].users[y].cards.push(card);
+                    }
                     card.colorChoice = color;
                     if (valid(card, this.rooms[i].stack)) {
                         this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
@@ -200,6 +210,19 @@ io.on('connection', function (socket) {
                             }
                         }
                     }
+                    socket.emit('roomData', this.rooms[i]);
+                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                }
+            }
+        }
+    });
+
+    socket.on("clickUno", () => {
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    this.rooms[i].users[y].uno = true;
+
                     socket.emit('roomData', this.rooms[i]);
                     socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
                 }
