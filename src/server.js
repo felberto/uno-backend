@@ -133,7 +133,14 @@ io.on('connection', function (socket) {
                             --count;
                         }
                     }
-                    this.rooms[i].stack = shuffled.shift();
+
+                    //check if stack card is not black
+                    let stackCard = shuffled.shift();
+                    while (stackCard.color === 'black') {
+                        shuffled.push(stackCard);
+                        stackCard = shuffled.shift();
+                    }
+                    this.rooms[i].stack = stackCard;
                     this.rooms[i].deck = shuffled;
                     this.rooms[i].userTurn = Math.floor(Math.random() * this.rooms[i].users.length);
                 }
