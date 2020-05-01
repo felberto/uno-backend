@@ -19,6 +19,7 @@ io.on('connection', function (socket) {
             users: [{id: 0, user: socket.id, username: userName, cards: [], uno: false, finished: false}],
             deck: [],
             stack: {},
+            trash: [],
             userTurn: null,
             direction: '+',
             ranking: []
@@ -159,15 +160,22 @@ io.on('connection', function (socket) {
                     } else if (this.rooms[i].users[y].cards.length === 2 && !this.rooms[i].users[y].uno) {
                         for (let j = 0; j < 2; ++j) {
                             let card = this.rooms[i].deck.shift();
+                            if (this.rooms[i].deck.length === 0) {
+                                this.rooms[i].deck = shuffle(this.rooms[i].trash);
+                            }
                             this.rooms[i].users[y].cards.push(card);
                         }
                     } else if (this.rooms[i].users[y].cards.length > 2 && this.rooms[i].users[y].uno) {
                         let card = this.rooms[i].deck.shift();
+                        if (this.rooms[i].deck.length === 0) {
+                            this.rooms[i].deck = shuffle(this.rooms[i].trash);
+                        }
                         this.rooms[i].users[y].cards.push(card);
                     }
                     card.colorChoice = color;
                     if (valid(card, this.rooms[i].stack)) {
                         this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
+                        this.rooms[i].trash.push(this.rooms[i].stack);
                         this.rooms[i].stack = card;
                         counter = 1;
 
@@ -233,6 +241,9 @@ io.on('connection', function (socket) {
                                     let count = 2;
                                     while (count !== 0) {
                                         this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        if (this.rooms[i].deck.length === 0) {
+                                            this.rooms[i].deck = shuffle(this.rooms[i].trash);
+                                        }
                                         --count;
                                     }
                                 }
@@ -243,6 +254,9 @@ io.on('connection', function (socket) {
                                     let count = 4;
                                     while (count !== 0) {
                                         this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
+                                        if (this.rooms[i].deck.length === 0) {
+                                            this.rooms[i].deck = shuffle(this.rooms[i].trash);
+                                        }
                                         --count;
                                     }
                                 }
@@ -274,6 +288,9 @@ io.on('connection', function (socket) {
                     }
 
                     let card = this.rooms[i].deck.shift();
+                    if (this.rooms[i].deck.length === 0) {
+                        this.rooms[i].deck = shuffle(this.rooms[i].trash);
+                    }
                     this.rooms[i].users[y].cards.push(card);
 
                     if (!valid(card, this.rooms[i].stack)) {
