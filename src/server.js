@@ -72,6 +72,9 @@ io.on('connection', function (socket) {
                     console.log('left room ' + this.rooms[i].name);
                 }
             }
+            if (this.rooms[i].users.length === 0) {
+                this.rooms = this.rooms.filter(room => room.name !== this.rooms[i].name);
+            }
         }
     });
 
@@ -124,6 +127,7 @@ io.on('connection', function (socket) {
             let cards = JSON.parse(jsonString);
             for (let i = 0; i < this.rooms.length; ++i) {
                 if (this.rooms[i].name === room) {
+                    this.rooms[i].playing = true;
                     this.rooms[i].users = shuffle(this.rooms[i].users);
                     let shuffled = shuffle(cards.cards);
                     for (let y = 0; y < this.rooms[i].users.length; ++y) {
@@ -270,6 +274,7 @@ io.on('connection', function (socket) {
                     if (this.rooms[i].ranking.length === this.rooms[i].users.length) {
                         socket.emit('finishGame');
                         socket.broadcast.to(this.rooms[i].name).emit('finishGame');
+                        this.rooms[i].playing = false;
                     }
                 }
             }
@@ -328,6 +333,22 @@ io.on('connection', function (socket) {
 
     socket.on("disconnect", () => {
         console.log("user disconnected");
+        for (let i = 0; i < this.rooms.length; ++i) {
+            for (let y = 0; y < this.rooms[i].users.length; ++y) {
+                if (this.rooms[i].users[y].user === socket.id) {
+                    this.rooms[i].users.splice(this.rooms[i].users.indexOf(this.rooms[i].users[y]), 1);
+                    socket.leave(this.rooms[i].name);
+                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+                    console.log('left room ' + this.rooms[i].name);
+
+                    socket.broadcast.to(this.rooms[i].name).emit('cancelGame');
+                    this.rooms[i].playing = false;
+                }
+            }
+            if (this.rooms[i].users.length === 0) {
+                this.rooms = this.rooms.filter(room => room.name !== this.rooms[i].name);
+            }
+        }
     });
 });
 
