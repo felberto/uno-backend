@@ -243,6 +243,7 @@ io.on('connection', function (socket) {
                             for (let z = 0; z < this.rooms[i].users.length; ++z) {
                                 if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
                                     let count = 2;
+                                    this.rooms[i].users[z].uno = false;
                                     while (count !== 0) {
                                         this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
                                         if (this.rooms[i].deck.length === 0) {
@@ -256,6 +257,7 @@ io.on('connection', function (socket) {
                             for (let z = 0; z < this.rooms[i].users.length; ++z) {
                                 if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
                                     let count = 4;
+                                    this.rooms[i].users[z].uno = false;
                                     while (count !== 0) {
                                         this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
                                         if (this.rooms[i].deck.length === 0) {
