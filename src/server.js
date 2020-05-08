@@ -4,6 +4,18 @@ const http = require('http').createServer(express);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 8000;
 const fs = require('fs');
+const winston = require('winston');
+
+let logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(info => {
+            return `${info.timestamp} ${info.level}: ${info.message}`;
+        })
+    ),
+    transports: [new winston.transports.Console()]
+});
 
 let rooms = [];
 
@@ -391,5 +403,5 @@ app.get('/api', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on PORT ${port}`);
+    logger.log('info', `Server is running on PORT ${port}`);
 });
