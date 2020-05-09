@@ -137,11 +137,10 @@ io.on('connection', function (socket) {
 
                 while (counter !== 0) {
                     userTurn(index);
+                    while (checkIfUserIsFinished(index)) {
+                        userTurn(index);
+                    }
                     counter = counter - 1;
-                }
-
-                while (checkIfUserIsFinished(index)) {
-                    userTurn(index);
                 }
             }
             if (card.action === 'draw2') {
@@ -170,6 +169,9 @@ io.on('connection', function (socket) {
 
         if (!valid(card, rooms[index['room']].stack)) {
             userTurn(index);
+            while (checkIfUserIsFinished(index)) {
+                userTurn(index);
+            }
         }
         socket.emit('roomData', rooms[index['room']]);
         socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
@@ -361,8 +363,10 @@ function checkIfUserIsFinished(index) {
 function cardActionDraw(index, count) {
     for (let z = 0; z < rooms[index['room']].users.length; ++z) {
         if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
-            rooms[index['room']].users[z].uno = false;
-            logger.log('info', `uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+            if (rooms[index['room']].users[z].uno){
+                rooms[index['room']].users[z].uno = false;
+                logger.log('info', `uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+            }
             index['user'] = z;
             while (count !== 0) {
                 getCard(index);
