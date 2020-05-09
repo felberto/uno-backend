@@ -184,7 +184,7 @@ io.on('connection', function (socket) {
 
         socket.emit('roomData', rooms[index['room']]);
         socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
-        logger.log('info', `user ${rooms[index['room']].users[index['user']].username} clicked uno`);
+        logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} clicked uno`);
     });
 
     socket.on("disconnect", () => {
@@ -274,7 +274,7 @@ function resetRoom(room) {
 function checkIfUnoIsActive(index, card) {
     if (rooms[index['room']].users[index['user']].cards.length === 1 && rooms[index['room']].users[index['user']].uno && !valid(card, rooms[index['room']].stack)) {
         rooms[index['room']].users[index['user']].uno = false;
-        logger.log('info', `uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+        logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
     } else if (rooms[index['room']].users[index['user']].cards.length === 2 && !rooms[index['room']].users[index['user']].uno) {
         for (let j = 0; j < 2; ++j) {
             getCard(index);
@@ -282,7 +282,7 @@ function checkIfUnoIsActive(index, card) {
     } else if (rooms[index['room']].users[index['user']].cards.length > 2 && rooms[index['room']].users[index['user']].uno) {
         getCard(index);
         rooms[index['room']].users[index['user']].uno = false;
-        logger.log('info', `uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+        logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
     }
 }
 
@@ -292,7 +292,7 @@ function getCard(index) {
         rooms[index['room']].deck = shuffle(rooms[index['room']].trash);
     }
     rooms[index['room']].users[index['user']].cards.push(card);
-    logger.log('info', `user ${rooms[index['room']].users[index['user']].username} got card ${card.color} ${card.number} ${card.action}`);
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} got card ${card.color} ${card.number} ${card.action}`);
     return card;
 }
 
@@ -300,7 +300,7 @@ function playCard(index, card) {
     rooms[index['room']].users[index['user']].cards = rooms[index['room']].users[index['user']].cards.filter(userCard => userCard.id !== card.id);
     rooms[index['room']].trash.push(rooms[index['room']].stack);
     rooms[index['room']].stack = card;
-    logger.log('info', `user ${rooms[index['room']].users[index['user']].username} played card ${card.color} ${card.number} ${card.action}`);
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} played card ${card.color} ${card.number} ${card.action}`);
 }
 
 function checkIfUserPlayedLastCard(index) {
@@ -316,7 +316,7 @@ function checkIfUserPlayedLastCard(index) {
 function finishPlayer(index) {
     rooms[index['room']].ranking.push(rooms[index['room']].users[index['user']]);
     rooms[index['room']].users[index['user']].finished = true;
-    logger.log('info', `user ${rooms[index['room']].users[index['user']].username} finished`);
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} finished`);
 }
 
 function checkIfGameIsFinished(index) {
@@ -349,7 +349,7 @@ function userTurn(index) {
             rooms[index['room']].userTurn = rooms[index['room']].users.length - 1;
         }
     }
-    logger.log('info', `next user is up`);
+    logger.log('info', `${rooms[index['room']].name}: next user is up`);
 }
 
 function checkIfUserIsFinished(index) {
@@ -365,7 +365,7 @@ function cardActionDraw(index, count) {
         if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
             if (rooms[index['room']].users[z].uno){
                 rooms[index['room']].users[z].uno = false;
-                logger.log('info', `uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+                logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
             }
             index['user'] = z;
             while (count !== 0) {
@@ -379,7 +379,7 @@ function cardActionDraw(index, count) {
 function resetUno(index) {
     if (rooms[index['room']].users[index['user']].cards.length === 1 && rooms[index['room']].users[index['user']].uno) {
         rooms[index['room']].users[index['user']].uno = false;
-        logger.log('info', `reseted uno for user ${rooms[index['room']].users[index['user']].username}`);
+        logger.log('info', `${rooms[index['room']].name}: reseted uno for user ${rooms[index['room']].users[index['user']].username}`);
     }
 }
 
