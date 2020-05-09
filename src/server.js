@@ -140,7 +140,9 @@ io.on('connection', function (socket) {
                     counter = counter - 1;
                 }
 
-                checkIfUserIsFinished(index);
+                while (checkIfUserIsFinished(index)) {
+                    userTurn(index);
+                }
             }
             if (card.action === 'draw2') {
                 cardActionDraw(index, 2);
@@ -350,8 +352,8 @@ function userTurn(index) {
 
 function checkIfUserIsFinished(index) {
     for (let z = 0; z < rooms[index['room']].users.length; ++z) {
-        while (rooms[index['room']].users[z].id === rooms[index['room']].userTurn && rooms[index['room']].users[z].finished) {
-            userTurn(index);
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            return rooms[index['room']].users[z].finished;
         }
     }
 }
