@@ -133,6 +133,7 @@ io.on('connection', function (socket) {
             rooms[index['room']].stack = stackCard;
             rooms[index['room']].deck = shuffled;
             rooms[index['room']].userTurn = Math.floor(Math.random() * rooms[index['room']].users.length);
+            markCardsIfValid(index);
             logger.log('info', `game in room ${rooms[index['room']].name} started`);
 
             while (checkIfUserTurnIsBot(index)) {
@@ -180,6 +181,7 @@ io.on('connection', function (socket) {
                 cardActionDraw(index, 4);
             }
         }
+        markCardsIfValid(index);
         socket.emit('roomData', rooms[index['room']]);
         socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
 
@@ -211,6 +213,7 @@ io.on('connection', function (socket) {
 
         let card = getCard(index);
 
+        markCardsIfValid(index);
         socket.emit('roomData', rooms[index['room']]);
         socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
 
@@ -231,6 +234,7 @@ io.on('connection', function (socket) {
                     logger.log('info', `game in room ${rooms[index['room']].name} finished`);
                 }
             }
+            markCardsIfValid(index);
             socket.emit('roomData', rooms[index['room']]);
             socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
         }
@@ -439,6 +443,16 @@ function resetUno(index) {
     if (rooms[index['room']].users[index['user']].cards.length === 1 && rooms[index['room']].users[index['user']].uno) {
         rooms[index['room']].users[index['user']].uno = false;
         logger.log('info', `${rooms[index['room']].name}: reseted uno for user ${rooms[index['room']].users[index['user']].username}`);
+    }
+}
+
+function markCardsIfValid(index) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            for (let i = 0; i < rooms[index['room']].users[z].cards.length; ++i) {
+                rooms[index['room']].users[z].cards[i].valid = valid(rooms[index['room']].users[z].cards[i], rooms[index['room']].stack);
+            }
+        }
     }
 }
 
