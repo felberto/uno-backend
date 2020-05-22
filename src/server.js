@@ -492,6 +492,7 @@ async function playBot(index) {
             cardActionDraw(index, 4);
         }
     }
+    markCardsIfValid(index);
 }
 
 function randomColor() {
