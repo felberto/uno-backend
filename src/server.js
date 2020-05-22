@@ -73,6 +73,23 @@ io.on('connection', function (socket) {
         socket.broadcast.emit('responseAllRooms', getAvailableRooms());
     });
 
+    socket.on('addBot', () => {
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        let userName = 'Bot' + Math.floor(Math.random() * 100);
+        rooms[index['room']].users.push({
+            id: 0,
+            user: 'bot',
+            username: userName,
+            cards: [],
+            uno: false,
+            finished: false
+        });
+
+        io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+        logger.log('info', `bot ${userName} joined room ${rooms[index['room']].name}`);
+    });
+
     socket.on('getRoomData', () => {
         let index = getRoomIndexAndUserIndexBySocketId(socket.id);
         socket.emit('roomData', rooms[index['room']]);
@@ -169,15 +186,19 @@ io.on('connection', function (socket) {
 
         let card = getCard(index);
 
+        markCardsIfValid(index);
+        socket.emit('roomData', rooms[index['room']]);
+        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+
         if (!valid(card, rooms[index['room']].stack)) {
             userTurn(index);
             while (checkIfUserIsFinished(index)) {
                 userTurn(index);
             }
+            markCardsIfValid(index);
+            socket.emit('roomData', rooms[index['room']]);
+            socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
         }
-        markCardsIfValid(index);
-        socket.emit('roomData', rooms[index['room']]);
-        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
     });
 
     socket.on("clickUno", () => {
@@ -396,6 +417,89 @@ function markCardsIfValid(index) {
     }
 }
 
+function getIndexUserTurn(index) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            index['user'] = z;
+            return index;
+        }
+    }
+}
+
+function Sleep(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function playBot(index) {
+    await Sleep(2000);
+
+    let counter;
+    let card;
+    index = getIndexUserTurn(index);
+    let noValidCard = true;
+    for (let i = 0; i < rooms[index['room']].users[index['user']].cards.length; ++i) {
+        if (valid(rooms[index['room']].users[index['user']].cards[i], rooms[index['room']].stack)) {
+            card = rooms[index['room']].users[index['user']].cards[i];
+            noValidCard = false;
+        }
+    }
+    if (noValidCard) {
+        resetUno(index);
+
+        card = getCard(index);
+
+        if (!valid(card, rooms[index['room']].stack)) {
+            userTurn(index);
+            while (checkIfUserIsFinished(index)) {
+                userTurn(index);
+            }
+        }
+    }
+
+    if (rooms[index['room']].users[index['user']].cards.length === 2) {
+        rooms[index['room']].users[index['user']].uno = true;
+
+        logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} clicked uno`);
+    }
+
+    checkIfUnoIsActive(index, card);
+    if (card.color === 'black' && (card.action === 'changeColor' || card.action === 'draw4')) {
+        card.colorChoice = randomColor();
+    } else {
+        card.colorChoice = null;
+    }
+
+    if (valid(card, rooms[index['room']].stack)) {
+        playCard(index, card);
+
+        checkIfUserPlayedLastCard(index);
+
+        if (!checkIfGameIsFinished(index)) {
+
+            counter = checkIfCardActionIsReturnOrSuspend(index, card);
+
+            while (counter !== 0) {
+                userTurn(index);
+                while (checkIfUserIsFinished(index)) {
+                    userTurn(index);
+                }
+                counter = counter - 1;
+            }
+        }
+        if (card.action === 'draw2') {
+            cardActionDraw(index, 2);
+        } else if (card.action === 'draw4') {
+            cardActionDraw(index, 4);
+        }
+    }
+    markCardsIfValid(index);
+}
+
+function randomColor() {
+    let colors = ['red', 'blue', 'yellow', 'green'];
+    return colors[Math.floor(Math.random() * colors.length)].toString();
+}
+
 function valid(card, stackCard) {
     if ((stackCard.color === card.color && stackCard.color !== 'black') || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
         return true;
@@ -424,6 +528,28 @@ function shuffle(array) {
     }
     return array;
 }
+
+// define a simple route
+app.get('/api', (req, res) => {
+    res.status(200).send("uno backend");
+});
+
+app.post('/api/playBot', (req, res) => {
+    let room = req.body.room;
+    let index = getRoomIndexByName(room);
+
+    playBot(index).then(r => {
+        io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+
+        if (checkIfGameIsFinished(index)) {
+            io.in(rooms[index['room']].name).emit('finishGame');
+            rooms[index['room']].playing = false;
+            logger.log('info', `game in room ${rooms[index['room']].name} finished`);
+        }
+
+        res.status(200).send("bot played card");
+    });
+});
 
 app.listen(port, () => {
     logger.log('info', `################################################################`);
