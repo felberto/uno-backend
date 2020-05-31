@@ -1,6 +1,6 @@
 {
   "name": "uno-backend",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "uno backend",
   "main": "src/server.js",
   "scripts": {
@@ -17,7 +17,8 @@
     "chai-http": "^4.3.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

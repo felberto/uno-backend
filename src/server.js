@@ -1,225 +1,511 @@
+const pckg = require('../package.json');
 const app = require('./index');
 const express = require('express');
 const http = require('http').createServer(express);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 8000;
+const portSocketIO = process.env.PORT || 8001;
 const fs = require('fs');
+const winston = require('winston');
+
+let logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(info => {
+            return `${info.timestamp} ${info.level}: ${info.message}`;
+        })
+    ),
+    transports: [new winston.transports.Console()]
+});
 
 let rooms = [];
 
 io.origins('*:*'); // for latest version
 io.on('connection', function (socket) {
-    console.log('a user connected');
+    logger.log('info', `user ${socket.id} connected`);
 
     socket.on('createRoom', (roomName, userName) => {
         socket.username = userName;
-        this.rooms.push({
+        rooms.push({
             name: roomName,
             playing: false,
-            users: [{id: 0, user: socket.id, username: userName, cards: []}],
+            users: [{id: 0, user: socket.id, username: userName, cards: [], uno: false, finished: false}],
             deck: [],
             stack: {},
+            trash: [],
             userTurn: null,
-            direction: '+'
+            direction: '+',
+            ranking: []
         });
         socket.leaveAll();
         socket.join(roomName);
-        console.log('created room ' + roomName);
-        console.log(io.sockets.adapter.sids[socket.id]);
-
-        let availableRooms = [];
-        console.log(this.rooms);
-
-        for (let i = 0; i < this.rooms.length; ++i) {
-            if (!this.rooms[i].playing && this.rooms[i].users.length !== 4) {
-                availableRooms.push(this.rooms[i].name);
-            }
-        }
-        socket.broadcast.emit('responseAllRooms', availableRooms);
+        socket.broadcast.emit('responseAllRooms', getAvailableRooms());
+        logger.log('info', `user ${socket.id} created room ${roomName}`);
     });
 
     socket.on('joinRoom', (roomName, userName) => {
-        console.log('join');
-        console.log(roomName);
         socket.username = userName;
-        for (let i = 0; i < this.rooms.length; ++i) {
-            if (this.rooms[i].name === roomName) {
-                this.rooms[i].users.push({id: 0, user: socket.id, username: userName, cards: []});
-                socket.leaveAll();
-                socket.join(roomName);
-                socket.broadcast.to(roomName).emit('roomData', this.rooms[i]);
-                console.log('joined room ' + roomName);
-            }
-        }
+        let index = getRoomIndexByName(roomName);
+        rooms[index['room']].users.push({
+            id: 0,
+            user: socket.id,
+            username: userName,
+            cards: [],
+            uno: false,
+            finished: false
+        });
+        socket.leaveAll();
+        socket.join(roomName);
+        socket.broadcast.to(roomName).emit('roomData', rooms[index['room']]);
+        logger.log('info', `user ${socket.id} joined room ${roomName}`);
     });
 
     socket.on('leaveRoom', () => {
-        for (let i = 0; i < this.rooms.length; ++i) {
-            for (let y = 0; y < this.rooms[i].users.length; ++y) {
-                if (this.rooms[i].users[y].user === socket.id) {
-                    this.rooms[i].users.splice(this.rooms[i].users.indexOf(this.rooms[i].users[y]), 1);
-                    socket.leave(this.rooms[i].name);
-                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
-                    console.log('left room ' + this.rooms[i].name);
-                }
-            }
-        }
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        rooms[index['room']].users.splice(rooms[index['room']].users.indexOf(rooms[index['room']].users[index['user']]), 1);
+        socket.leave(rooms[index['room']].name);
+        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+        logger.log('info', `user ${socket.id} left room ${rooms[index['room']].name}`);
+
+        removeRoomIfEmpty(index['room']);
+        socket.broadcast.emit('responseAllRooms', getAvailableRooms());
+    });
+
+    socket.on('addBot', () => {
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        let userName = 'Bot' + Math.floor(Math.random() * 100);
+        rooms[index['room']].users.push({
+            id: 0,
+            user: 'bot',
+            username: userName,
+            cards: [],
+            uno: false,
+            finished: false
+        });
+
+        io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+        logger.log('info', `bot ${userName} joined room ${rooms[index['room']].name}`);
     });
 
     socket.on('getRoomData', () => {
-        for (let i = 0; i < this.rooms.length; ++i) {
-            for (let y = 0; y < this.rooms[i].users.length; ++y) {
-                if (this.rooms[i].users[y].user === socket.id) {
-                    socket.emit('roomData', this.rooms[i]);
-                }
-            }
-        }
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+        socket.emit('roomData', rooms[index['room']]);
     });
 
     socket.on('getAllRooms', () => {
-        let availableRooms = [];
-        console.log(this.rooms);
-
-        for (let i = 0; i < this.rooms.length; ++i) {
-            if (!this.rooms[i].playing && this.rooms[i].users.length !== 4) {
-                availableRooms.push(this.rooms[i].name);
-            }
-        }
-        socket.emit('responseAllRooms', availableRooms);
+        socket.emit('responseAllRooms', getAvailableRooms());
     });
 
     socket.on('clickStart', (room) => {
+        resetRoom(room);
+
         socket.broadcast.to(room).emit('redirectStart');
         fs.readFile('./resources/cards.json', 'utf8', (err, jsonString) => {
             if (err) {
-                console.log("File read failed:", err);
+                logger.log('error', `File read failed: ${err}`);
                 return
             }
             let cards = JSON.parse(jsonString);
-            for (let i = 0; i < this.rooms.length; ++i) {
-                if (this.rooms[i].name === room) {
-                    this.rooms[i].users = shuffle(this.rooms[i].users);
-                    let shuffled = shuffle(cards.cards);
-                    for (let y = 0; y < this.rooms[i].users.length; ++y) {
-                        this.rooms[i].users[y].id = this.rooms[i].users.indexOf(this.rooms[i].users[y]);
-                        let count = 7;
-                        while (count !== 0) {
-                            this.rooms[i].users[y].cards.push(shuffled.shift());
-                            --count;
-                        }
-                    }
-                    this.rooms[i].stack = shuffled.shift();
-                    this.rooms[i].deck = shuffled;
-                    this.rooms[i].userTurn = Math.floor(Math.random() * this.rooms[i].users.length);
+
+            let index = getRoomIndexByName(room);
+            rooms[index['room']].playing = true;
+            rooms[index['room']].users = shuffle(rooms[index['room']].users);
+            let shuffled = shuffle(cards.cards);
+            for (let y = 0; y < rooms[index['room']].users.length; ++y) {
+                rooms[index['room']].users[y].id = rooms[index['room']].users.indexOf(rooms[index['room']].users[y]);
+                let count = 7;
+                while (count !== 0) {
+                    rooms[index['room']].users[y].cards.push(shuffled.shift());
+                    --count;
                 }
             }
+
+            //check if stack card is not black
+            let stackCard = shuffled.shift();
+            while (stackCard.color === 'black') {
+                shuffled.push(stackCard);
+                stackCard = shuffled.shift();
+            }
+            rooms[index['room']].stack = stackCard;
+            rooms[index['room']].deck = shuffled;
+            rooms[index['room']].userTurn = Math.floor(Math.random() * rooms[index['room']].users.length);
+            markCardsIfValid(index);
+            logger.log('info', `game in room ${rooms[index['room']].name} started`);
         });
     });
 
-    socket.on("playCard", (card) => {
+    socket.on("playCard", (card, color) => {
         let counter;
-        for (let i = 0; i < this.rooms.length; ++i) {
-            for (let y = 0; y < this.rooms[i].users.length; ++y) {
-                if (this.rooms[i].users[y].user === socket.id) {
-                    if (valid(card, this.rooms[i].stack)) {
-                        this.rooms[i].users[y].cards = this.rooms[i].users[y].cards.filter(userCard => userCard.id !== card.id);
-                        this.rooms[i].stack = card;
-                        counter = 1;
-                        if (card.action === 'return') {
-                            if (this.rooms[i].direction === '+') {
-                                this.rooms[i].direction = '-';
-                            } else {
-                                this.rooms[i].direction = '+';
-                            }
-                        } else if (card.action === 'suspend') {
-                            counter = 2;
-                        }
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
 
-                        while (counter !== 0) {
-                            if (this.rooms[i].direction === '+') {
-                                this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
-                                if (this.rooms[i].userTurn === this.rooms[i].users.length) {
-                                    this.rooms[i].userTurn = 0;
-                                }
-                            } else {
-                                this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
-                                if (this.rooms[i].userTurn === -1) {
-                                    this.rooms[i].userTurn = this.rooms[i].users.length - 1;
-                                }
-                            }
-                            counter = counter - 1;
-                        }
+        checkIfUnoIsActive(index, card);
 
-                        if (card.action === 'draw2') {
-                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
-                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
-                                    let count = 2;
-                                    while (count !== 0) {
-                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
-                                        --count;
-                                    }
-                                }
-                            }
-                        } else if (card.action === 'draw4') {
-                            for (let z = 0; z < this.rooms[i].users.length; ++z) {
-                                if (this.rooms[i].users[z].id === this.rooms[i].userTurn) {
-                                    let count = 4;
-                                    while (count !== 0) {
-                                        this.rooms[i].users[z].cards.push(this.rooms[i].deck.shift());
-                                        --count;
-                                    }
-                                }
-                            }
-                        }
+        card.colorChoice = color;
+        if (valid(card, rooms[index['room']].stack)) {
+            playCard(index, card);
 
-                        socket.emit('roomData', this.rooms[i]);
-                        socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
+            checkIfUserPlayedLastCard(index);
+
+            if (!checkIfGameIsFinished(index)) {
+
+                counter = checkIfCardActionIsReturnOrSuspend(index, card);
+
+                while (counter !== 0) {
+                    userTurn(index);
+                    while (checkIfUserIsFinished(index)) {
+                        userTurn(index);
                     }
+                    counter = counter - 1;
                 }
             }
+            if (card.action === 'draw2') {
+                cardActionDraw(index, 2);
+            } else if (card.action === 'draw4') {
+                cardActionDraw(index, 4);
+            }
+        }
+        markCardsIfValid(index);
+        socket.emit('roomData', rooms[index['room']]);
+        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+
+        if (checkIfGameIsFinished(index)) {
+            socket.emit('finishGame');
+            socket.broadcast.to(rooms[index['room']].name).emit('finishGame');
+            rooms[index['room']].playing = false;
+            logger.log('info', `game in room ${rooms[index['room']].name} finished`);
         }
     });
 
     socket.on("getCard", () => {
-        for (let i = 0; i < this.rooms.length; ++i) {
-            for (let y = 0; y < this.rooms[i].users.length; ++y) {
-                if (this.rooms[i].users[y].user === socket.id) {
-                    let card = this.rooms[i].deck.shift();
-                    this.rooms[i].users[y].cards.push(card);
-                    if (!valid(card, this.rooms[i].stack)) {
-                        if (this.rooms[i].direction === '+') {
-                            this.rooms[i].userTurn = this.rooms[i].userTurn + 1;
-                            if (this.rooms[i].userTurn === this.rooms[i].users.length) {
-                                this.rooms[i].userTurn = 0;
-                            }
-                        } else {
-                            this.rooms[i].userTurn = this.rooms[i].userTurn - 1;
-                            if (this.rooms[i].userTurn === -1) {
-                                this.rooms[i].userTurn = this.rooms[i].users.length - 1;
-                            }
-                        }
-                    }
-                    socket.emit('roomData', this.rooms[i]);
-                    socket.broadcast.to(this.rooms[i].name).emit('roomData', this.rooms[i]);
-                }
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        resetUno(index);
+
+        let card = getCard(index);
+
+        markCardsIfValid(index);
+        socket.emit('roomData', rooms[index['room']]);
+        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+
+        if (!valid(card, rooms[index['room']].stack)) {
+            userTurn(index);
+            while (checkIfUserIsFinished(index)) {
+                userTurn(index);
             }
+            markCardsIfValid(index);
+            socket.emit('roomData', rooms[index['room']]);
+            socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
         }
     });
 
+    socket.on("clickUno", () => {
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        rooms[index['room']].users[index['user']].uno = true;
+
+        socket.emit('roomData', rooms[index['room']]);
+        socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+        logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} clicked uno`);
+    });
+
     socket.on("disconnect", () => {
-        console.log("user disconnected");
+        logger.log('info', `user ${socket.id} disconnected`);
+        socket.leaveAll();
+
+        let index = getRoomIndexAndUserIndexBySocketId(socket.id);
+
+        if (index !== undefined) {
+            rooms[index['room']].users.splice(rooms[index['room']].users.indexOf(rooms[index['room']].users[index['user']]), 1);
+            socket.leave(rooms[index['room']].name);
+            socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+            logger.log('info', `user ${socket.id} left room ${rooms[index['room']].name}`);
+
+            socket.broadcast.to(rooms[index['room']].name).emit('cancelGame');
+            rooms[index['room']].playing = false;
+
+            removeRoomIfEmpty(index['room']);
+        }
     });
 });
 
-io.listen(8001);
+io.listen(portSocketIO);
+
+function getAvailableRooms() {
+    let availableRooms = [];
+
+    for (let i = 0; i < rooms.length; ++i) {
+        if (!rooms[i].playing && rooms[i].users.length !== 4) {
+            availableRooms.push(rooms[i].name);
+        }
+    }
+
+    return availableRooms;
+}
+
+function getRoomIndexByName(roomName) {
+    let index = {};
+    for (let i = 0; i < rooms.length; ++i) {
+        if (rooms[i].name === roomName) {
+            index['room'] = i;
+            return index;
+        }
+    }
+}
+
+function getRoomIndexAndUserIndexBySocketId(socketId) {
+    let index = {};
+    for (let i = 0; i < rooms.length; ++i) {
+        for (let y = 0; y < rooms[i].users.length; ++y) {
+            if (rooms[i].users[y].user === socketId) {
+                index['room'] = i;
+                index['user'] = y;
+                return index;
+            }
+        }
+    }
+}
+
+function removeRoomIfEmpty(roomIndex) {
+    if (rooms[roomIndex].users.length === 0) {
+        let roomName = rooms[roomIndex].name;
+        rooms = rooms.filter(room => room.name !== rooms[roomIndex].name);
+        logger.log('info', `room ${roomName} deleted`);
+    }
+}
+
+function resetRoom(room) {
+    for (let i = 0; i < rooms.length; ++i) {
+        if (rooms[i].name === room) {
+            rooms[i].deck = [];
+            rooms[i].stack = {};
+            rooms[i].userTurn = null;
+            rooms[i].direction = '+';
+            //ToDo: don't reset for score for all games
+            rooms[i].ranking = [];
+            for (let j = 0; j < rooms[i].users.length; ++j) {
+                rooms[i].users[j].cards = [];
+                rooms[i].users[j].uno = false;
+                rooms[i].users[j].finished = false;
+            }
+        }
+    }
+    logger.log('info', `room ${room} reseted`);
+}
+
+function checkIfUnoIsActive(index, card) {
+    if (rooms[index['room']].users[index['user']].cards.length === 1 && rooms[index['room']].users[index['user']].uno && !valid(card, rooms[index['room']].stack)) {
+        rooms[index['room']].users[index['user']].uno = false;
+        logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+    } else if (rooms[index['room']].users[index['user']].cards.length === 2 && !rooms[index['room']].users[index['user']].uno) {
+        for (let j = 0; j < 2; ++j) {
+            getCard(index);
+        }
+    } else if (rooms[index['room']].users[index['user']].cards.length > 2 && rooms[index['room']].users[index['user']].uno) {
+        getCard(index);
+        rooms[index['room']].users[index['user']].uno = false;
+        logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+    }
+}
+
+function getCard(index) {
+    let card = rooms[index['room']].deck.shift();
+    if (rooms[index['room']].deck.length === 0) {
+        rooms[index['room']].deck = shuffle(rooms[index['room']].trash);
+    }
+    rooms[index['room']].users[index['user']].cards.push(card);
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} got card ${card.color} ${card.number} ${card.action}`);
+    return card;
+}
+
+function playCard(index, card) {
+    rooms[index['room']].users[index['user']].cards = rooms[index['room']].users[index['user']].cards.filter(userCard => userCard.id !== card.id);
+    rooms[index['room']].trash.push(rooms[index['room']].stack);
+    rooms[index['room']].stack = card;
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} played card ${card.color} ${card.number} ${card.action}`);
+}
+
+function checkIfUserPlayedLastCard(index) {
+    if (rooms[index['room']].users[index['user']].cards.length === 0 && rooms[index['room']].ranking.length === (rooms[index['room']].users.length - 2)) {
+        finishPlayer(index);
+        rooms[index['room']].ranking.push(rooms[index['room']].users.filter(user => user.finished !== true)[0]);
+        rooms[index['room']].users.filter(user => user.finished === true)[0].finished = true;
+    } else if (rooms[index['room']].users[index['user']].cards.length === 0 && rooms[index['room']].ranking.length < (rooms[index['room']].users.length - 2)) {
+        finishPlayer(index);
+    }
+}
+
+function finishPlayer(index) {
+    rooms[index['room']].ranking.push(rooms[index['room']].users[index['user']]);
+    rooms[index['room']].users[index['user']].finished = true;
+    logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} finished`);
+}
+
+function checkIfGameIsFinished(index) {
+    return rooms[index['room']].ranking.length === rooms[index['room']].users.length;
+}
+
+function checkIfCardActionIsReturnOrSuspend(index, card) {
+    let counter = 1;
+    if (card.action === 'return') {
+        if (rooms[index['room']].direction === '+') {
+            rooms[index['room']].direction = '-';
+        } else {
+            rooms[index['room']].direction = '+';
+        }
+    } else if (card.action === 'suspend') {
+        counter = 2;
+    }
+    return counter;
+}
+
+function userTurn(index) {
+    if (rooms[index['room']].direction === '+') {
+        rooms[index['room']].userTurn = rooms[index['room']].userTurn + 1;
+        if (rooms[index['room']].userTurn === rooms[index['room']].users.length) {
+            rooms[index['room']].userTurn = 0;
+        }
+    } else {
+        rooms[index['room']].userTurn = rooms[index['room']].userTurn - 1;
+        if (rooms[index['room']].userTurn === -1) {
+            rooms[index['room']].userTurn = rooms[index['room']].users.length - 1;
+        }
+    }
+    logger.log('info', `${rooms[index['room']].name}: next user is up`);
+}
+
+function checkIfUserIsFinished(index) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            return rooms[index['room']].users[z].finished;
+        }
+    }
+}
+
+function cardActionDraw(index, count) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            if (rooms[index['room']].users[z].uno) {
+                rooms[index['room']].users[z].uno = false;
+                logger.log('info', `${rooms[index['room']].name}: uno reseted for user ${rooms[index['room']].users[index['user']].username}`);
+            }
+            index['user'] = z;
+            while (count !== 0) {
+                getCard(index);
+                --count;
+            }
+        }
+    }
+}
+
+function resetUno(index) {
+    if (rooms[index['room']].users[index['user']].cards.length === 1 && rooms[index['room']].users[index['user']].uno) {
+        rooms[index['room']].users[index['user']].uno = false;
+        logger.log('info', `${rooms[index['room']].name}: reseted uno for user ${rooms[index['room']].users[index['user']].username}`);
+    }
+}
+
+function markCardsIfValid(index) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            for (let i = 0; i < rooms[index['room']].users[z].cards.length; ++i) {
+                rooms[index['room']].users[z].cards[i].valid = valid(rooms[index['room']].users[z].cards[i], rooms[index['room']].stack);
+            }
+        }
+    }
+}
+
+function getIndexUserTurn(index) {
+    for (let z = 0; z < rooms[index['room']].users.length; ++z) {
+        if (rooms[index['room']].users[z].id === rooms[index['room']].userTurn) {
+            index['user'] = z;
+            return index;
+        }
+    }
+}
+
+function Sleep(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function playBot(index) {
+    await Sleep(2000);
+
+    let counter;
+    let card;
+    index = getIndexUserTurn(index);
+    let noValidCard = true;
+    for (let i = 0; i < rooms[index['room']].users[index['user']].cards.length; ++i) {
+        if (valid(rooms[index['room']].users[index['user']].cards[i], rooms[index['room']].stack)) {
+            card = rooms[index['room']].users[index['user']].cards[i];
+            noValidCard = false;
+        }
+    }
+    if (noValidCard) {
+        resetUno(index);
+
+        card = getCard(index);
+
+        if (!valid(card, rooms[index['room']].stack)) {
+            userTurn(index);
+            while (checkIfUserIsFinished(index)) {
+                userTurn(index);
+            }
+        }
+    }
+
+    if (rooms[index['room']].users[index['user']].cards.length === 2) {
+        rooms[index['room']].users[index['user']].uno = true;
+
+        logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} clicked uno`);
+    }
+
+    checkIfUnoIsActive(index, card);
+    if (card.color === 'black' && (card.action === 'changeColor' || card.action === 'draw4')) {
+        card.colorChoice = randomColor();
+    } else {
+        card.colorChoice = null;
+    }
+
+    if (valid(card, rooms[index['room']].stack)) {
+        playCard(index, card);
+
+        checkIfUserPlayedLastCard(index);
+
+        if (!checkIfGameIsFinished(index)) {
+
+            counter = checkIfCardActionIsReturnOrSuspend(index, card);
+
+            while (counter !== 0) {
+                userTurn(index);
+                while (checkIfUserIsFinished(index)) {
+                    userTurn(index);
+                }
+                counter = counter - 1;
+            }
+        }
+        if (card.action === 'draw2') {
+            cardActionDraw(index, 2);
+        } else if (card.action === 'draw4') {
+            cardActionDraw(index, 4);
+        }
+    }
+    markCardsIfValid(index);
+}
+
+function randomColor() {
+    let colors = ['red', 'blue', 'yellow', 'green'];
+    return colors[Math.floor(Math.random() * colors.length)].toString();
+}
 
 function valid(card, stackCard) {
-    if (stackCard.color === card.color || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
+    if ((stackCard.color === card.color && stackCard.color !== 'black') || (stackCard.number === card.number && card.number !== null) || (stackCard.action === card.action && card.action !== null)) {
         return true;
-    } else if (card.color === 'black') {
+    } else if (card.color === 'black' && stackCard.color !== 'black') {
         return true;
-    } else if (stackCard.color === 'black') {
-        //ToDo: color choice if black card
+    } else if (stackCard.color === 'black' && stackCard.colorChoice === card.color) {
         return true
     } else {
         return false;
@@ -248,6 +534,27 @@ app.get('/api', (req, res) => {
     res.status(200).send("uno backend");
 });
 
+app.post('/api/playBot', (req, res) => {
+    let room = req.body.room;
+    let index = getRoomIndexByName(room);
+
+    playBot(index).then(r => {
+        io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
+
+        if (checkIfGameIsFinished(index)) {
+            io.in(rooms[index['room']].name).emit('finishGame');
+            rooms[index['room']].playing = false;
+            logger.log('info', `game in room ${rooms[index['room']].name} finished`);
+        }
+
+        res.status(200).send("bot played card");
+    });
+});
+
 app.listen(port, () => {
-    console.log(`Server is running on PORT ${port}`);
+    logger.log('info', `################################################################`);
+    logger.log('info', `${pckg.name} ${pckg.version} is starting...`);
+    logger.log('info', `Server is running on PORT ${port}`);
+    logger.log('info', `SocketIO is running on PORT ${portSocketIO}`);
+    logger.log('info', `################################################################`);
 });
