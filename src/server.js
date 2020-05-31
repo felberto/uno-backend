@@ -30,13 +30,21 @@ io.on('connection', function (socket) {
         rooms.push({
             name: roomName,
             playing: false,
-            users: [{id: 0, user: socket.id, username: userName, cards: [], uno: false, finished: false}],
+            users: [{
+                id: 0,
+                user: socket.id,
+                username: userName,
+                cards: [],
+                uno: false,
+                finished: false,
+                rankingLastGame: 0,
+                rankingTotal: 0
+            }],
             deck: [],
             stack: {},
             trash: [],
             userTurn: null,
-            direction: '+',
-            ranking: []
+            direction: '+'
         });
         socket.leaveAll();
         socket.join(roomName);
@@ -53,7 +61,9 @@ io.on('connection', function (socket) {
             username: userName,
             cards: [],
             uno: false,
-            finished: false
+            finished: false,
+            rankingLastGame: 0,
+            rankingTotal: 0
         });
         socket.leaveAll();
         socket.join(roomName);
@@ -83,7 +93,9 @@ io.on('connection', function (socket) {
             username: userName,
             cards: [],
             uno: false,
-            finished: false
+            finished: false,
+            rankingLastGame: 0,
+            rankingTotal: 0
         });
 
         io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
@@ -172,9 +184,9 @@ io.on('connection', function (socket) {
         socket.broadcast.to(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
 
         if (checkIfGameIsFinished(index)) {
+            rooms[index['room']].playing = false;
             socket.emit('finishGame');
             socket.broadcast.to(rooms[index['room']].name).emit('finishGame');
-            rooms[index['room']].playing = false;
             logger.log('info', `game in room ${rooms[index['room']].name} finished`);
         }
     });
@@ -283,12 +295,11 @@ function resetRoom(room) {
             rooms[i].stack = {};
             rooms[i].userTurn = null;
             rooms[i].direction = '+';
-            //ToDo: don't reset for score for all games
-            rooms[i].ranking = [];
             for (let j = 0; j < rooms[i].users.length; ++j) {
                 rooms[i].users[j].cards = [];
                 rooms[i].users[j].uno = false;
                 rooms[i].users[j].finished = false;
+                rooms[i].users[j].rankingLastGame = 0;
             }
         }
     }
@@ -327,24 +338,42 @@ function playCard(index, card) {
     logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} played card ${card.color} ${card.number} ${card.action}`);
 }
 
+function getRanking(index) {
+    let ranking = 1;
+    for (let y = 0; y < rooms[index['room']].users.length; ++y) {
+        if (rooms[index['room']].users[y].finished === true) {
+            ranking = ranking + 1
+        }
+    }
+    return ranking;
+}
+
 function checkIfUserPlayedLastCard(index) {
-    if (rooms[index['room']].users[index['user']].cards.length === 0 && rooms[index['room']].ranking.length === (rooms[index['room']].users.length - 2)) {
+    if (rooms[index['room']].users[index['user']].cards.length === 0 && (getRanking(index) - 1) === (rooms[index['room']].users.length - 2)) {
         finishPlayer(index);
-        rooms[index['room']].ranking.push(rooms[index['room']].users.filter(user => user.finished !== true)[0]);
-        rooms[index['room']].users.filter(user => user.finished === true)[0].finished = true;
-    } else if (rooms[index['room']].users[index['user']].cards.length === 0 && rooms[index['room']].ranking.length < (rooms[index['room']].users.length - 2)) {
+        rooms[index['room']].users.filter(user => user.finished !== true)[0].rankingLastGame = getRanking(index);
+        rooms[index['room']].users.filter(user => user.finished !== true)[0].rankingTotal = rooms[index['room']].users.filter(user => user.finished !== true)[0].rankingTotal + getRanking(index);
+        rooms[index['room']].users.filter(user => user.finished !== true)[0].finished = true;
+    } else if (rooms[index['room']].users[index['user']].cards.length === 0 && (getRanking(index) - 1) < (rooms[index['room']].users.length - 2)) {
         finishPlayer(index);
     }
 }
 
 function finishPlayer(index) {
-    rooms[index['room']].ranking.push(rooms[index['room']].users[index['user']]);
+    rooms[index['room']].users[index['user']].rankingLastGame = getRanking(index);
+    rooms[index['room']].users[index['user']].rankingTotal = rooms[index['room']].users[index['user']].rankingTotal + getRanking(index);
     rooms[index['room']].users[index['user']].finished = true;
     logger.log('info', `${rooms[index['room']].name}: user ${rooms[index['room']].users[index['user']].username} finished`);
 }
 
 function checkIfGameIsFinished(index) {
-    return rooms[index['room']].ranking.length === rooms[index['room']].users.length;
+    let finished = true;
+    for (let y = 0; y < rooms[index['room']].users.length; ++y) {
+        if (rooms[index['room']].users[y].finished === false) {
+            finished = false;
+        }
+    }
+    return finished;
 }
 
 function checkIfCardActionIsReturnOrSuspend(index, card) {
@@ -542,8 +571,8 @@ app.post('/api/playBot', (req, res) => {
         io.in(rooms[index['room']].name).emit('roomData', rooms[index['room']]);
 
         if (checkIfGameIsFinished(index)) {
-            io.in(rooms[index['room']].name).emit('finishGame');
             rooms[index['room']].playing = false;
+            io.in(rooms[index['room']].name).emit('finishGame');
             logger.log('info', `game in room ${rooms[index['room']].name} finished`);
         }
 
