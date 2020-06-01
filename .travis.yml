@@ -21,10 +21,10 @@ env:
 
 jobs:
   include:
-    - stage: test
-      script:
-        - npm test -- --coverage --watchAll=false
+#    - stage: test
+#      script:
+#        - npm test -- --coverage --watchAll=false
     - stage: sonar
       script:
-        - npm test -- --coverage --watchAll=false
+#        - npm test -- --coverage --watchAll=false
         - sonar-scanner
